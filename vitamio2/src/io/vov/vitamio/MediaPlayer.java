@@ -62,6 +62,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * href="http://developer.android.com/guide/topics/media/index.html">Audio and
  * Video</a> for additional help using MediaPlayer.
  */
+@SuppressLint("NewApi")
 public class MediaPlayer {
   public static final int CACHE_TYPE_NOT_AVAILABLE = 1;
   public static final int CACHE_TYPE_START = 2;
@@ -86,7 +87,7 @@ public class MediaPlayer {
    * The video is too complex for the decoder: it can't decode frames fast
    * enough. Possibly only the audio plays fine at this stage.
    *
-   * @see io.vov.vitamio.MediaPlayer.OnInfoListener
+   * @see OnInfoListener
    */
   public static final int MEDIA_INFO_VIDEO_TRACK_LAGGING = 700;
   /**
@@ -106,13 +107,13 @@ public class MediaPlayer {
   /**
    * The media cannot be seeked (e.g live stream)
    *
-   * @see io.vov.vitamio.MediaPlayer.OnInfoListener
+   * @see OnInfoListener
    */
   public static final int MEDIA_INFO_NOT_SEEKABLE = 801;
   /**
    * The rate in KB/s of av_read_frame()
    *
-   * @see io.vov.vitamio.MediaPlayer.OnInfoListener
+   * @see OnInfoListener
    */
   public static final int MEDIA_INFO_DOWNLOAD_RATE_CHANGED = 901;
   public static final int VIDEOQUALITY_LOW = -16;
@@ -266,7 +267,10 @@ public class MediaPlayer {
     mContext = ctx;
 
     String LIB_ROOT;
-    if(VERSION.SDK_INT > 20) {
+	    if(VERSION.SDK_INT > 23) {
+    	LIB_ROOT = Vitamio.getLibraryPath();
+    }
+    else if(VERSION.SDK_INT > 20) {
         LIB_ROOT = "";
     }
     else{
@@ -275,12 +279,12 @@ public class MediaPlayer {
 
     if (preferHWDecoder) {
       if (!NATIVE_OMX_LOADED.get()) {
-        if (Build.VERSION.SDK_INT > 17)
+        if (VERSION.SDK_INT > 17)
         	load_omxnative_lib( LIB_ROOT , "libOMX.18.so");
         
-        else if (Build.VERSION.SDK_INT > 13)
+        else if (VERSION.SDK_INT > 13)
         	load_omxnative_lib( LIB_ROOT ,  "libOMX.14.so");
-        else if (Build.VERSION.SDK_INT > 10)
+        else if (VERSION.SDK_INT > 10)
         	load_omxnative_lib( LIB_ROOT , "libOMX.11.so");
         else
         	load_omxnative_lib( LIB_ROOT ,  "libOMX.9.so");
@@ -308,22 +312,28 @@ public class MediaPlayer {
 
   static {
 	String LIB_ROOT;
-    if(VERSION.SDK_INT > 20) {
-        LIB_ROOT = "";
+    if(VERSION.SDK_INT > 23) {
+    	LIB_ROOT = Vitamio.getLibraryPath();
     }
-    else{
+    else if(VERSION.SDK_INT > 20) {
+        LIB_ROOT = "";
+    }else{
     	LIB_ROOT = Vitamio.getLibraryPath();
     }
     try {
     
-  
-    load_lib(  LIB_ROOT ,  "libstlport_shared.so");
-    load_lib(  LIB_ROOT ,  "libvplayer.so");
+    	if(VERSION.SDK_INT >= 24) {
+        	System.loadLibrary("stlport_shared");
+        	System.loadLibrary("vplayer");
+        }else{
+            load_lib(  LIB_ROOT ,  "libstlport_shared.so");
+            load_lib(  LIB_ROOT ,  "libvplayer.so");	
+        }
     loadFFmpeg_native_lib( LIB_ROOT , "libffmpeg.so");    
       boolean vvo_loaded = false;
-      if (Build.VERSION.SDK_INT > 8)
+      if (VERSION.SDK_INT > 8)
         vvo_loaded = loadVVO_native_lib( LIB_ROOT ,  "libvvo.9.so");
-      else if (Build.VERSION.SDK_INT > 7)
+      else if (VERSION.SDK_INT > 7)
         vvo_loaded = loadVVO_native_lib(  LIB_ROOT , "libvvo.8.so");
       else
         vvo_loaded = loadVVO_native_lib(  LIB_ROOT , "libvvo.7.so");
@@ -332,7 +342,7 @@ public class MediaPlayer {
         Log.d("FALLBACK TO VVO JNI " + vvo_loaded);
       }
       loadVAO_native_lib( LIB_ROOT ,  "libvao.0.so");
-    } catch (java.lang.UnsatisfiedLinkError e) {
+    } catch (UnsatisfiedLinkError e) {
       Log.e("Error loading libs", e);
     }
   }
@@ -626,14 +636,14 @@ public class MediaPlayer {
    * <p/>
    * This function has the MediaPlayer access the low-level power manager
    * service to control the device's power usage while playing is occurring. The
-   * parameter is a combination of {@link android.os.PowerManager} wake flags.
+   * parameter is a combination of {@link PowerManager} wake flags.
    * Use of this method requires {@link android.Manifest.permission#WAKE_LOCK}
    * permission. By default, no attempt is made to keep the device awake during
    * playback.
    *
    * @param context the Context to use
    * @param mode    the power/wake mode to set
-   * @see android.os.PowerManager
+   * @see PowerManager
    */
   @SuppressLint("Wakelock")
   public void setWakeMode(Context context, int mode) {
@@ -1002,7 +1012,7 @@ public class MediaPlayer {
    *              index is 0..total number of track - 1. The total number of tracks
    *              as well as the type of each individual track can be found by
    *              calling {@link #getTrackInfo()} method.
-   * @see io.vov.vitamio.MediaPlayer#getTrackInfo
+   * @see MediaPlayer#getTrackInfo
    */
   public void selectTrack(int index) {
   	selectOrDeselectBandTrack(index, true /* select */);
@@ -1019,7 +1029,7 @@ public class MediaPlayer {
    *              index is 0..total number of tracks - 1. The total number of tracks
    *              as well as the type of each individual track can be found by
    *              calling {@link #getTrackInfo()} method.
-   * @see io.vov.vitamio.MediaPlayer#getTrackInfo
+   * @see MediaPlayer#getTrackInfo
    */
   public void deselectTrack(int index) {
   	selectOrDeselectBandTrack(index, false /* select */);
@@ -1235,7 +1245,7 @@ public class MediaPlayer {
 
   /**
    * @return the percent
-   * @see io.vov.vitamio.MediaPlayer.OnBufferingUpdateListener
+   * @see OnBufferingUpdateListener
    */
   public native int getBufferProgress();
 
@@ -1567,7 +1577,7 @@ private int audioTrackInit(int sampleRateInHz, int channels) {
   /**
    * Class for MediaPlayer to return each audio/video/subtitle track's metadata.
    *
-   * @see io.vov.vitamio.MediaPlayer#getTrackInfo
+   * @see MediaPlayer#getTrackInfo
    */
   static public class TrackInfo {
     public static final int MEDIA_TRACK_TYPE_UNKNOWN = 0;
